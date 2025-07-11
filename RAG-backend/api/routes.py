@@ -5,10 +5,11 @@ from ingest.load_document import extract_text_from_pdf, chunk_pdf_text
 from ingest.embed_and_store import store_in_qdrant
 from vectorstores.qdrant_store import create_qdrant_client
 from retriever.answer_question import answer_question
+from langchain.memory import ConversationBufferMemory
+from chains.qa_chain import get_conversational_chain
+from active_sessions.sessions import active_sessions
 
 router = APIRouter()
-
-active_sessions = {}
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -42,10 +43,19 @@ async def upload_rulebook(
         raise HTTPException(status_code=500, detail=f"Failed to store documents: {str(e)}")
     
     session_id = uuid.uuid4().hex
+
+    memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        return_messages=True,
+        input_key="question",
+        output_key="answer"
+    )
+
     active_sessions[session_id] = {
         "file_path": file_path,
         "collection_name": collection_name,
         "game_name": game_name,
+        "memory": memory
     }
     return {
         "session_id": session_id,
@@ -65,12 +75,56 @@ async def ask_question(
     collection_name = session_data["collection_name"]
 
     try:
-        result = answer_question(
-            query=question,
+        chain = get_conversational_chain(
             collection_name=collection_name,
-            top_k=5
+            session_id=session_id
         )
-        return result
+
+        result = chain.invoke({
+            "question": question
+        })
+
+        answer = result.get("answer", "No answer found")
+        source_documents = result.get("source_documents", [])
+
+        sources=[]
+
+        for doc in source_documents:
+            metadata = doc.metadata
+            sources.append({
+                "page":metadata.get("page", "Unknown"),
+                "source": metadata.get("source", "Unknown"),
+                "text": doc.page_content
+            })
+
+        return{
+            "answer": answer,
+            "sources": sources
+        }
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to answer question: {str(e)}")
 
+
+@router.delete("/end")
+async def end_session(
+    session_id:str = Body(...),
+):
+    if session_id not in active_sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    session_data = active_sessions[session_id]
+    collection_name = session_data["collection_name"]
+    rulebook_path = session_data["file_path"]
+
+    qdrant_client = create_qdrant_client()
+
+    try:
+        qdrant_client.delete_collection(collection_name=collection_name)
+        os.remove(rulebook_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete collection: {str(e)}")
+    
+    del active_sessions[session_id]
+    
+    return {"message": f"Session {session_id} ended and collection '{collection_name}' deleted."}
