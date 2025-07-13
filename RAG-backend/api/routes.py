@@ -106,9 +106,9 @@ async def ask_question(
         raise HTTPException(status_code=500, detail=f"Failed to answer question: {str(e)}")
 
 
-@router.delete("/end")
+@router.post("/end")
 async def end_session(
-    session_id:str = Body(...),
+    session_id:str = Body(...,embed=True),
 ):
     if session_id not in active_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
