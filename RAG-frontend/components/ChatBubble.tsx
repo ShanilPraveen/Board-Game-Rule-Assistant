@@ -6,6 +6,7 @@
 
 import { motion } from 'framer-motion';
 import { ChatMessage, formatSources } from '@/lib/api';
+import { Easing } from 'framer-motion';
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -27,7 +28,7 @@ export default function ChatBubble({ message, isLast = false }: ChatBubbleProps)
       scale: 1,
       transition: {
         duration: 0.3,
-        ease: 'easeOut',
+        ease: 'easeOut' as Easing,
       },
     },
   };
