@@ -1,7 +1,3 @@
-/**
- * Landing Page - Board Game Rule Assistant
- */
-
 'use client';
 
 import { Easing, motion } from 'framer-motion';
