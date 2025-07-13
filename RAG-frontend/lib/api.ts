@@ -1,9 +1,4 @@
-/**
- * API helper functions for Board Game Rule Assistant
- * Handles all backend communication with FastAPI server
- */
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export interface UploadResponse {
   session_id: string;
@@ -13,8 +8,9 @@ export interface UploadResponse {
 export interface AskResponse {
   answer: string;
   sources?: Array<{
-    file: string;
+    source: string;
     page: number;
+    text: string;
   }>;
 }
 
@@ -23,18 +19,13 @@ export interface ChatMessage {
   type: 'user' | 'ai';
   content: string;
   sources?: Array<{
-    file: string;
+    source: string;
     page: number;
   }>;
   timestamp: Date;
 }
 
-/**
- * Upload a PDF rulebook file to the backend
- * @param file - PDF file to upload
- * @param gameName - Name of the board game
- * @returns Promise<UploadResponse> - Contains session_id for future requests
- */
+
 export async function uploadRulebook(file: File, gameName: string): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append('file', file);
@@ -48,7 +39,6 @@ export async function uploadRulebook(file: File, gameName: string): Promise<Uplo
   if (!response.ok) {
     throw new Error(`Upload failed: ${response.statusText}`);
   }
-
   return response.json();
 }
 
@@ -77,11 +67,7 @@ export async function askQuestion(sessionId: string, question: string): Promise<
   return response.json();
 }
 
-/**
- * End the current chat session
- * @param sessionId - Session ID to terminate
- * @returns Promise<void>
- */
+
 export async function endSession(sessionId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/end`, {
     method: 'POST',
@@ -111,10 +97,10 @@ export function generateMessageId(): string {
  * @param sources - Array of source references
  * @returns string - Formatted source text
  */
-export function formatSources(sources?: Array<{ file: string; page: number }>): string {
+export function formatSources(sources?: Array<{ source: string; page: number }>): string {
   if (!sources || sources.length === 0) return '';
   
   return sources
-    .map(source => `[Source: ${source.file} | Page: ${source.page}]`)
+    .map(source => `[Source: ${source.source} | Page: ${source.page}]`)
     .join(' ');
 }
