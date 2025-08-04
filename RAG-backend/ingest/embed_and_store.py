@@ -4,6 +4,17 @@ from typing import Any, Dict,List
 from langchain_core.documents import Document
 import uuid
 from qdrant_client.models import PointStruct,VectorParams, Distance
+<<<<<<< HEAD
+=======
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_qdrant import QdrantVectorStore
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+>>>>>>> 64c0f14d9ee34178ef5a7679b610a56439595244
 
 def generate_embeddings(documents:list[Document]) -> list[list[float]]:
     """
@@ -46,6 +57,7 @@ def store_in_qdrant(documents:List[Document],collection_name:str,vector_dim:int=
     Returns:
         None
     """
+<<<<<<< HEAD
     # Generate embeddings for the documents
     embeddings = generate_embeddings(documents)
     
@@ -79,6 +91,39 @@ def delete_collection(collection_name: str):
     Returns:
         None
     """
+=======
+    # embeddings = generate_embeddings(documents)
+    
+    # points = build_points(documents, embeddings)
+
+    # qdrant_client = create_qdrant_client()
+    
+    # qdrant_client.recreate_collection(
+    #     collection_name=collection_name,
+    #     vectors_config=VectorParams(size=vector_dim, distance=Distance.COSINE)
+    # )
+    
+    # qdrant_client.upsert(
+    #     collection_name=collection_name,
+    #     points=points
+    # )
+    
+    embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+    vector_store = QdrantVectorStore.from_documents(
+        documents=documents,
+        embedding=embedding_model,
+        url=QDRANT_URL,
+        api_key=QDRANT_API_KEY,
+        prefer_grpc=False,
+        collection_name=collection_name,
+    )
+
+    print(f"Stored {len(documents)} documents in Qdrant collection '{collection_name}'.")
+
+def delete_collection(collection_name: str):
+
+>>>>>>> 64c0f14d9ee34178ef5a7679b610a56439595244
     qdrant_client = create_qdrant_client()
     
     # Delete the collection
